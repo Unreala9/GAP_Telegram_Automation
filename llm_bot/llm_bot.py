@@ -93,6 +93,7 @@ async def generate_llm_response(bot_id: str, user_message: str, telegram_user_id
         api_key = config.get("api_key")
         business_info = config.get("business_info", "")
         support_name = config.get("support_name", "AI Assistant")
+        system_prompt_db = config.get("system_prompt") or ""
         # knowledge_base_text is the n8n-generated full system prompt
         knowledge_base_text = config.get("knowledge_base_text") or ""
     else:
@@ -100,6 +101,7 @@ async def generate_llm_response(bot_id: str, user_message: str, telegram_user_id
         api_key = getattr(config, "api_key", None)
         business_info = getattr(config, "business_info", "")
         support_name = getattr(config, "support_name", "AI Assistant")
+        system_prompt_db = getattr(config, "system_prompt", "") or ""
         knowledge_base_text = getattr(config, "knowledge_base_text", "") or ""
 
     if not api_key:
@@ -161,17 +163,23 @@ async def generate_llm_response(bot_id: str, user_message: str, telegram_user_id
     except Exception as rag_err:
         logger.error(f"Error during RAG or Embedding generation: {rag_err}", exc_info=True)
 
-    # Priority:
-    # 1. knowledge_base_text  → written by n8n after generating the full KB system prompt
-    # 2. business_info        → raw user input (used before n8n has run, or as fallback)
-    # 3. Generic fallback
-    if knowledge_base_text.strip():
+    # Build System Prompt matching dedicated DB fields
+    if system_prompt_db.strip():
+        system_prompt = system_prompt_db
+    elif knowledge_base_text.strip():
         system_prompt = knowledge_base_text
     elif business_info and len(business_info) > 200:
         # Legacy: full prompt was stored directly in business_info
         system_prompt = business_info
     else:
         system_prompt = f"Your name is {support_name}. {business_info or 'You are a helpful AI support assistant.'}"
+
+    # If both are set, append the KB to the system prompt
+    # If knowledge_base_text was used as system_prompt (fallback), don't append it again
+    if system_prompt_db.strip():
+        kb_text = knowledge_base_text or business_info or ""
+        if kb_text.strip():
+            system_prompt += f"\n\n=== KNOWLEDGE BASE ===\n{kb_text.strip()}\n=== END OF KNOWLEDGE BASE ==="
 
     # Inject RAG text context
     if retrieved_context.strip():
@@ -363,7 +371,7 @@ async def start_bot(config: dict):
         logger.info(f"BOT VERIFIED username=@{me.username}, id={me.id}, bot_id={bot_id}")
         logger.info("Business Mode must be ON in BotFather and bot must be connected in Telegram Business > Chatbots")
         
-        @client.on(events.NewMessage)
+        @client.on(events.NewMessage(incoming=True))
         async def handler(event):
             # Only respond to private messages
             if not event.is_private:
@@ -546,6 +554,11 @@ async def start_bot(config: dict):
                         msg = u.message
                         if not msg:
                             logger.info("Skipping business update because message is missing")
+                            continue
+
+                        # SKIP if this is an outgoing message sent by us or the owner
+                        if getattr(msg, 'out', False):
+                            logger.info("Skipping outgoing business message (sent by us/owner)")
                             continue
 
                         logger.info(
