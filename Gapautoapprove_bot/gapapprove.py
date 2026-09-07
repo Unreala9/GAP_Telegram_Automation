@@ -195,7 +195,7 @@ async def handle_join_request(event: ChatJoinRequest, bot: Bot):
                 break
     except Exception as e:
         print(f"Error getting admins for chat {chat_id}: {e}")
-        return
+        # Continue to approve request even if admin lookup fails/times out
 
     # If owner doesn't have an active plan, send notification but still auto-approve
     if owner_id and not has_active_plan(owner_id):
@@ -322,50 +322,49 @@ async def reminder_loop(bot: Bot):
 
 async def main():
     bot = Bot(BOT_TOKEN)
-
-    # Default admin rights: only "Add members" enabled
-    rights = ChatAdministratorRights(
-        is_anonymous=False,
-        can_manage_chat=False,
-        can_delete_messages=False,
-        can_manage_video_chats=False,
-        can_restrict_members=False,
-        can_promote_members=False,
-        can_change_info=False,
-        can_invite_users=True,   # ✅ "Add members" ON
-        can_post_stories=False,
-        can_edit_stories=False,
-        can_delete_stories=False,
-    )
-
-    # For groups / supergroups
-    await bot.set_my_default_administrator_rights(
-        rights=rights,
-        for_channels=False,
-    )
-
-    # For channels
-    await bot.set_my_default_administrator_rights(
-        rights=rights,
-        for_channels=True,
-    )
-
     dp = Dispatcher()
 
-    # Commands
-    dp.message.register(cmd_start, CommandStart())
-    dp.message.register(cmd_status, Command("status"))
+    try:
+        # Attempt to set default admin rights (non-fatal if restricted by Telegram)
+        try:
+            rights = ChatAdministratorRights(
+                is_anonymous=False,
+                can_manage_chat=False,
+                can_delete_messages=False,
+                can_manage_video_chats=False,
+                can_restrict_members=False,
+                can_promote_members=False,
+                can_change_info=False,
+                can_invite_users=True,   # ✅ "Add members" ON
+                can_post_stories=False,
+                can_edit_stories=False,
+                can_delete_stories=False,
+            )
+            await bot.set_my_default_administrator_rights(rights=rights, for_channels=False)
+            await bot.set_my_default_administrator_rights(rights=rights, for_channels=True)
+        except Exception as ex:
+            print(f"⚠️ Could not set default admin rights ({ex}), continuing startup...")
 
-    # Join request
-    dp.chat_join_request.register(handle_join_request)
+        # Commands
+        dp.message.register(cmd_start, CommandStart())
+        dp.message.register(cmd_status, Command("status"))
 
-    print("🤖 Auto Approve Bot running (dashboard-managed subscriptions)...")
+        # Join request
+        dp.chat_join_request.register(handle_join_request)
 
-    # Start expiry reminder background loop
-    asyncio.create_task(reminder_loop(bot))
+        # Clear any existing webhook & drop pending updates to prevent conflicts
+        await bot.delete_webhook(drop_pending_updates=True)
 
-    await dp.start_polling(bot)
+        print("🤖 Auto Approve Bot running (dashboard-managed subscriptions)...")
+
+        # Start expiry reminder background loop
+        asyncio.create_task(reminder_loop(bot))
+
+        await dp.start_polling(bot)
+    finally:
+        await bot.session.close()
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+

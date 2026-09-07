@@ -1,7 +1,4 @@
-
-# ---------------------------------------------------
-
-import os, re, asyncio, json, base64
+import os, re, asyncio, json, base64, sys
 from telethon.tl import types
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo  # <-- NEW
@@ -13,42 +10,59 @@ from typing import Dict, List, Tuple, Set, Any, Optional
 from dotenv import load_dotenv
 from supabase import create_client, Client
 
-
 from telethon import TelegramClient, events, errors, Button
 from telethon.tl import functions
-from telethon.tl.functions.bots import SetBotInfoRequest, SetBotCommandsRequest
+from telethon.tl.functions.bots import SetBotCommandsRequest
 from telethon.types import BotCommand, BotCommandScopeDefault
 from telethon.utils import get_peer_id
 
-load_dotenv()
+# Resolve paths relative to this script directory
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DOTENV_PATH = os.path.join(SCRIPT_DIR, ".env")
+if os.path.exists(DOTENV_PATH):
+    load_dotenv(DOTENV_PATH)
+else:
+    load_dotenv()
 
 API_ID        = int(os.getenv("API_ID", "0"))
-API_HASH      = os.getenv("API_HASH", "")
-BOT_TOKEN     = os.getenv("BOT_TOKEN", "")
-SUPABASE_URL  = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY  = os.getenv("SUPABASE_KEY", "")
-SESSION_DIR   = os.getenv("SESSION_DIR", "sessions")
+API_HASH      = os.getenv("API_HASH", "").strip()
+BOT_TOKEN     = os.getenv("BOT_TOKEN", "").strip()
+SUPABASE_URL  = os.getenv("SUPABASE_URL", "").strip()
+# Prioritize service role key for backend bots, fallback to SUPABASE_KEY
+SUPABASE_KEY  = (os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY", "")).strip()
+
+raw_session_dir = os.getenv("SESSION_DIR", "sessions")
+SESSION_DIR   = raw_session_dir if os.path.isabs(raw_session_dir) else os.path.join(SCRIPT_DIR, raw_session_dir)
 TOP_N         = 14
 FORWARD_THROTTLE = 0.2  # seconds between sends to avoid spam & rate limits
 
 # Razorpay / Plan (BOT side disabled now)
 # Dashboard manages payments + subscriptions
-DASHBOARD_PLANS_URL = os.getenv("DASHBOARD_PLANS_URL", "")  # e.g. https://getaipilot.in/pricing
-DASHBOARD_SUPPORT_URL = os.getenv("DASHBOARD_SUPPORT_URL", "")  # optional support link
+DASHBOARD_PLANS_URL = os.getenv("DASHBOARD_PLANS_URL", "").strip()  # e.g. https://getaipilot.in/pricing
+DASHBOARD_SUPPORT_URL = os.getenv("DASHBOARD_SUPPORT_URL", "").strip()  # optional support link
 
 # Keep these envs only if you still want to show prices in bot UI
 PLAN_PRICE_INR      = int(os.getenv("PLAN_PRICE_INR", "699"))
 PLAN_DURATION_DAYS  = int(os.getenv("PLAN_DURATION_DAYS", "30"))
 
-assert API_ID and API_HASH and BOT_TOKEN, "Set API_ID, API_HASH, BOT_TOKEN in .env"
-assert SUPABASE_URL and SUPABASE_KEY, "Set SUPABASE_URL, SUPABASE_KEY in .env"
+if not (API_ID and API_HASH and BOT_TOKEN):
+    print("❌ ERROR: Missing API_ID, API_HASH, or BOT_TOKEN in .env")
+    raise RuntimeError("Missing API_ID, API_HASH, or BOT_TOKEN in .env")
 
-# NOTE: Removed Razorpay asserts because bot is NOT creating payment links anymore.
+if not (SUPABASE_URL and SUPABASE_KEY):
+    print("❌ ERROR: Missing SUPABASE_URL or SUPABASE_KEY/SUPABASE_SERVICE_ROLE_KEY in .env")
+    raise RuntimeError("Missing SUPABASE_URL or SUPABASE_KEY in .env")
 
 os.makedirs(SESSION_DIR, exist_ok=True)
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-bot = TelegramClient("login_bot_runner", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+try:
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+except Exception as ex:
+    print(f"❌ Failed to initialize Supabase client: {ex}")
+    raise
+
+bot_session_path = os.path.join(SCRIPT_DIR, "login_bot_runner")
+bot = TelegramClient(bot_session_path, API_ID, API_HASH).start(bot_token=BOT_TOKEN)
 
 PHONE_RE = re.compile(r"^\+\d{6,15}$", re.IGNORECASE)
 OTP_RE   = re.compile(r"^(?:LOGIN\s*)?(\d{4,8})$", re.IGNORECASE)  # 123456 or LOGIN123456
@@ -70,7 +84,7 @@ COMMANDS: List[Tuple[str, str]] = [
     ("status", "Check login status"),
     ("login", "Login your Telegram account"),
     ("config", "View current mapping"),
-    ("plans", "View plans & features"),
+    ("tg_plans", "View plans & features"),
     ("upgrade", f"Buy/Renew Premium (₹{PLAN_PRICE_INR} / {PLAN_DURATION_DAYS} days)"),
     ("stoplogin", "Cancel an in-progress /login flow"),
     ("upgrade_status", "Check subscription status"),
@@ -127,7 +141,7 @@ def sp_add_blacklist_word(uid: int, word: str) -> Tuple[bool, str]:
     if not w:
         return False, "⚠️ Use: `/blacklist_word WORD`"
     try:
-        supabase.table("user_blacklist_words").insert({
+        supabase.table("tg_user_blacklist_words").insert({
             "user_id": uid,
             "word": w,
             "word_lower": w.lower(),
@@ -140,31 +154,42 @@ def sp_add_blacklist_word(uid: int, word: str) -> Tuple[bool, str]:
         return False, f"❌ Failed: {ex}"
 
 def sp_list_blacklist(uid: int) -> List[dict]:
-    res = supabase.table("user_blacklist_words").select("*")\
-        .eq("user_id", uid).order("created_at", desc=True).execute()
-    return res.data or []
+    try:
+        res = supabase.table("tg_user_blacklist_words").select("*")\
+            .eq("user_id", uid).order("created_at", desc=True).execute()
+        return res.data or []
+    except Exception as ex:
+        print(f"sp_list_blacklist error for user {uid}: {ex}")
+        return []
 
 def sp_delete_blacklist_word(uid: int, word: str) -> Tuple[bool, str]:
     w = (word or "").strip().lower()
     if not w:
         return False, "⚠️ Use: `/remove_blacklist` buttons se delete karo."
-    supabase.table("user_blacklist_words").delete()\
-        .eq("user_id", uid).eq("word_lower", w).execute()
-    check = supabase.table("user_blacklist_words").select("id")\
-        .eq("user_id", uid).eq("word_lower", w).limit(1).execute()
-    if check.data:
-        return False, "❌ Remove failed (DB). Try again."
-    return True, f"🗑️ Removed `{word}` from blacklist"
+    try:
+        supabase.table("tg_user_blacklist_words").delete()\
+            .eq("user_id", uid).eq("word_lower", w).execute()
+        check = supabase.table("tg_user_blacklist_words").select("id")\
+            .eq("user_id", uid).eq("word_lower", w).limit(1).execute()
+        if check and check.data:
+            return False, "❌ Remove failed (DB). Try again."
+        return True, f"🗑️ Removed `{word}` from blacklist"
+    except Exception as ex:
+        print(f"sp_delete_blacklist_word error for user {uid}: {ex}")
+        return False, f"❌ Remove failed: {ex}"
 
 def sp_delete_blacklist_batch(uid: int, words: List[str]) -> int:
     lowers = [ (w or "").strip().lower() for w in words if (w or "").strip() ]
     if not lowers: return 0
-    supabase.table("user_blacklist_words").delete()\
-        .eq("user_id", uid).in_("word_lower", lowers).execute()
-    rem = supabase.table("user_blacklist_words").select("id")\
-        .eq("user_id", uid).in_("word_lower", lowers).execute().data or []
-    return max(0, len(lowers) - len(rem))
-#10-11-2025
+    try:
+        supabase.table("tg_user_blacklist_words").delete()\
+            .eq("user_id", uid).in_("word_lower", lowers).execute()
+        rem = supabase.table("tg_user_blacklist_words").select("id")\
+            .eq("user_id", uid).in_("word_lower", lowers).execute().data or []
+        return max(0, len(lowers) - len(rem))
+    except Exception as ex:
+        print(f"sp_delete_blacklist_batch error for user {uid}: {ex}")
+        return 0
 
 def sp_set_start_text(uid: int, text: str):
     payload = {
@@ -172,7 +197,10 @@ def sp_set_start_text(uid: int, text: str):
         "start_text": text.strip(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    supabase.table("user_text_addons").upsert(payload, on_conflict="user_id").execute()
+    try:
+        supabase.table("tg_user_text_addons").upsert(payload, on_conflict="user_id").execute()
+    except Exception as ex:
+        print(f"sp_set_start_text error for user {uid}: {ex}")
 
 def sp_set_end_text(uid: int, text: str):
     payload = {
@@ -180,70 +208,84 @@ def sp_set_end_text(uid: int, text: str):
         "end_text": text.strip(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
-    supabase.table("user_text_addons").upsert(payload, on_conflict="user_id").execute()
+    try:
+        supabase.table("tg_user_text_addons").upsert(payload, on_conflict="user_id").execute()
+    except Exception as ex:
+        print(f"sp_set_end_text error for user {uid}: {ex}")
 
 def sp_remove_texts(uid: int):
-    supabase.table("user_text_addons").delete().eq("user_id", uid).execute()
+    try:
+        supabase.table("tg_user_text_addons").delete().eq("user_id", uid).execute()
+    except Exception as ex:
+        print(f"sp_remove_texts error for user {uid}: {ex}")
 
 def sp_get_text_addons(uid: int) -> dict:
-    res = supabase.table("user_text_addons").select("*").eq("user_id", uid).limit(1).execute()
-    return res.data[0] if res.data else {"start_text": "", "end_text": ""}
-
-
+    try:
+        res = supabase.table("tg_user_text_addons").select("*").eq("user_id", uid).limit(1).execute()
+        return res.data[0] if (res and res.data) else {"start_text": "", "end_text": ""}
+    except Exception as ex:
+        print(f"sp_get_text_addons error for user {uid}: {ex}")
+        return {"start_text": "", "end_text": ""}
 
 def sp_add_filter(uid: int, from_name: str, to_name: str) -> Tuple[bool, str]:
     from_name = from_name.strip(); to_name = to_name.strip()
     if not from_name or not to_name:
         return False, "⚠️ Dono words do: `/addfilter old==new`"
 
-    # Optional guard: avoid exact-same mapping
     if from_name.lower() == to_name.lower():
         return False, "⚠️ Left aur right same nahi ho sakte."
 
     try:
-        # ✅ Do NOT send generated columns in payload
-        supabase.table("user_text_filters").insert({
+        supabase.table("tg_user_text_filters").insert({
             "user_id": uid,
             "from_name": from_name,
             "to_name": to_name,
         }).execute()
-
         return True, f"✅ Filter set: `{from_name}` → `{to_name}`"
-
     except Exception as ex:
         msg = str(ex).lower()
-        # Duplicate/unique index on (user_id, from_name_lower)
         if ("duplicate" in msg or "unique" in msg or
             "idx_user_text_filters_unique" in msg or "23505" in msg):
             return False, ("❌ Same left name already exists for this user.\n"
                            "Try another left value or remove the old one via `/removefilter old`.")
         return False, f"❌ Failed: {ex}"
 
-
 def sp_list_filters(uid: int) -> List[dict]:
-    res = supabase.table("user_text_filters").select("*")\
-        .eq("user_id", uid).order("created_at", desc=True).execute()
-    return res.data or []
+    try:
+        res = supabase.table("tg_user_text_filters").select("*")\
+            .eq("user_id", uid).order("created_at", desc=True).execute()
+        return res.data or []
+    except Exception as ex:
+        print(f"sp_list_filters error for user {uid}: {ex}")
+        return []
 
 def sp_delete_filter(uid: int, from_name: str) -> Tuple[bool, str]:
     from_name = from_name.strip()
     if not from_name: return False, "⚠️ Use: `/removefilter old` (ya `@old`)"
-    supabase.table("user_text_filters").delete()\
-        .eq("user_id", uid).eq("from_name_lower", from_name.lower()).execute()
-    check = supabase.table("user_text_filters").select("id").eq("user_id", uid)\
-        .eq("from_name_lower", from_name.lower()).limit(1).execute()
-    if check.data: return False, "❌ Could not remove (DB). Try again."
-    return True, f"🗑️ Removed filter for `{from_name}`"
+    try:
+        supabase.table("tg_user_text_filters").delete()\
+            .eq("user_id", uid).eq("from_name_lower", from_name.lower()).execute()
+        check = supabase.table("tg_user_text_filters").select("id").eq("user_id", uid)\
+            .eq("from_name_lower", from_name.lower()).limit(1).execute()
+        if check and check.data: return False, "❌ Could not remove (DB). Try again."
+        return True, f"🗑️ Removed filter for `{from_name}`"
+    except Exception as ex:
+        print(f"sp_delete_filter error for user {uid}: {ex}")
+        return False, f"❌ Could not remove filter: {ex}"
 
 def sp_delete_filters_batch(uid: int, from_names: List[str]) -> int:
     if not from_names: return 0
     lowers = [fn.strip().lower() for fn in from_names if fn and fn.strip()]
     if not lowers: return 0
-    supabase.table("user_text_filters").delete().eq("user_id", uid)\
-        .in_("from_name_lower", lowers).execute()
-    rem = supabase.table("user_text_filters").select("id").eq("user_id", uid)\
-        .in_("from_name_lower", lowers).execute().data or []
-    return max(0, len(lowers) - len(rem))
+    try:
+        supabase.table("tg_user_text_filters").delete().eq("user_id", uid)\
+            .in_("from_name_lower", lowers).execute()
+        rem = supabase.table("tg_user_text_filters").select("id").eq("user_id", uid)\
+            .in_("from_name_lower", lowers).execute().data or []
+        return max(0, len(lowers) - len(rem))
+    except Exception as ex:
+        print(f"sp_delete_filters_batch error for user {uid}: {ex}")
+        return 0
 
 # ---------- FILTERS: Compile & Apply ----------
 def compile_filters_for_user(uid: int) -> List[Tuple[re.Pattern, str]]:
@@ -273,7 +315,6 @@ def apply_text_filters(text: str, compiled_filters: List[Tuple[re.Pattern, str]]
 # ---------- BLACKLIST: Compile & Apply ----------
 def compile_blacklist_for_user(uid: int) -> List[re.Pattern]:
     rows = sp_list_blacklist(uid)
-    # Longest words first
     rows.sort(key=lambda r: len(r.get("word") or ""), reverse=True)
     compiled: List[re.Pattern] = []
     for r in rows:
@@ -295,16 +336,18 @@ def apply_blacklist(text: str, compiled_blacklist: List[re.Pattern]) -> str:
     out = text
     for pat in compiled_blacklist:
         out = pat.sub("", out)
-    # Clean extra spaces/newlines created by removals
     out = re.sub(r"[ \t]{2,}", " ", out)
     out = re.sub(r"\n{3,}", "\n\n", out)
     return out.strip()
 
-
 # ---------- Sessions / Mappings / Delay ----------
 def sp_get_session(uid: int) -> Optional[dict]:
-    res = supabase.table("user_sessions").select("*").eq("user_id", uid).limit(1).execute()
-    return res.data[0] if res.data else None
+    try:
+        res = supabase.table("tg_user_sessions").select("*").eq("user_id", uid).limit(1).execute()
+        return res.data[0] if (res and res.data) else None
+    except Exception as ex:
+        print(f"sp_get_session error for user {uid}: {ex}")
+        return None
 
 def sp_upsert_session(uid: int, phone: str, session_file: str):
     payload = {
@@ -312,16 +355,22 @@ def sp_upsert_session(uid: int, phone: str, session_file: str):
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     try:
-        supabase.table("user_sessions").upsert(payload, on_conflict="user_id").execute()
+        supabase.table("tg_user_sessions").upsert(payload, on_conflict="user_id").execute()
     except Exception:
-        existing = supabase.table("user_sessions").select("user_id").eq("user_id", uid).limit(1).execute()
-        if existing and existing.data:
-            supabase.table("user_sessions").update(payload).eq("user_id", uid).execute()
-        else:
-            supabase.table("user_sessions").insert(payload).execute()
+        try:
+            existing = supabase.table("tg_user_sessions").select("user_id").eq("user_id", uid).limit(1).execute()
+            if existing and existing.data:
+                supabase.table("tg_user_sessions").update(payload).eq("user_id", uid).execute()
+            else:
+                supabase.table("tg_user_sessions").insert(payload).execute()
+        except Exception as ex:
+            print(f"sp_upsert_session fallback error for user {uid}: {ex}")
 
 def sp_delete_session(uid: int):
-    supabase.table("user_sessions").delete().eq("user_id", uid).execute()
+    try:
+        supabase.table("tg_user_sessions").delete().eq("user_id", uid).execute()
+    except Exception as ex:
+        print(f"sp_delete_session error for user {uid}: {ex}")
 
 def sp_upsert_mapping(
     uid: int,
@@ -337,23 +386,29 @@ def sp_upsert_mapping(
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    # 👇 extra columns jo tumne table me banaye hain
     if sender_name is not None:
         payload["sender_name"] = sender_name
     if receivers_names is not None:
         payload["receivers_names"] = receivers_names
 
     try:
-        supabase.table("forward_mappings").upsert(
+        supabase.table("tg_forward_mappings").upsert(
             payload, on_conflict="user_id,sender_id"
         ).execute()
     except Exception:
-        supabase.table("forward_mappings").delete()\
-            .eq("user_id", uid).eq("sender_id", sender_id).execute()
-        supabase.table("forward_mappings").insert(payload).execute()
+        try:
+            supabase.table("tg_forward_mappings").delete()\
+                .eq("user_id", uid).eq("sender_id", sender_id).execute()
+            supabase.table("tg_forward_mappings").insert(payload).execute()
+        except Exception as ex:
+            print(f"sp_upsert_mapping error for user {uid}: {ex}")
 
 def sp_load_rows(uid: int) -> List[dict]:
-    return supabase.table("forward_mappings").select("*").eq("user_id", uid).execute().data or []
+    try:
+        return supabase.table("tg_forward_mappings").select("*").eq("user_id", uid).execute().data or []
+    except Exception as ex:
+        print(f"sp_load_rows error for user {uid}: {ex}")
+        return []
 
 def sp_load_mapping(uid: int) -> Dict[int, List[int]]:
     mp: Dict[int, List[int]] = {}
@@ -363,7 +418,10 @@ def sp_load_mapping(uid: int) -> Dict[int, List[int]]:
 
 def sp_delete_senders(uid: int, sender_ids: List[int]):
     for sid in sender_ids:
-        supabase.table("forward_mappings").delete().eq("user_id", uid).eq("sender_id", sid).execute()
+        try:
+            supabase.table("tg_forward_mappings").delete().eq("user_id", uid).eq("sender_id", sid).execute()
+        except Exception as ex:
+            print(f"sp_delete_senders error for user {uid}, sid {sid}: {ex}")
 
 def sp_remove_targets_globally(uid: int, target_ids: List[int]):
     rows = sp_load_rows(uid)
@@ -374,7 +432,6 @@ def sp_remove_targets_globally(uid: int, target_ids: List[int]):
         rec_names = list(r.get("receivers_names") or [])
         sender_name = r.get("sender_name")
 
-        # ids + names ko ek saath filter karo
         new_rec: List[int] = []
         new_rec_names: List[str] = []
 
@@ -397,15 +454,22 @@ def sp_remove_targets_globally(uid: int, target_ids: List[int]):
                     receivers_names=new_rec_names,
                 )
             else:
-                supabase.table("forward_mappings").delete()\
-                    .eq("user_id", uid).eq("sender_id", r["sender_id"]).execute()
+                try:
+                    supabase.table("tg_forward_mappings").delete()\
+                        .eq("user_id", uid).eq("sender_id", r["sender_id"]).execute()
+                except Exception as ex:
+                    print(f"sp_remove_targets_globally delete error for user {uid}: {ex}")
 
 def sp_delete_all_filters(uid: int) -> int:
-    rows = supabase.table("user_text_filters").select("id").eq("user_id", uid).execute().data or []
-    count = len(rows)
-    if count:
-        supabase.table("user_text_filters").delete().eq("user_id", uid).execute()
-    return count
+    try:
+        rows = supabase.table("tg_user_text_filters").select("id").eq("user_id", uid).execute().data or []
+        count = len(rows)
+        if count:
+            supabase.table("tg_user_text_filters").delete().eq("user_id", uid).execute()
+        return count
+    except Exception as ex:
+        print(f"sp_delete_all_filters error for user {uid}: {ex}")
+        return 0
 
 def sp_set_delay(uid: int, seconds: int):
     payload = {
@@ -413,20 +477,26 @@ def sp_set_delay(uid: int, seconds: int):
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
     try:
-        supabase.table("user_settings").upsert(payload, on_conflict="user_id").execute()
+        supabase.table("tg_user_settings").upsert(payload, on_conflict="user_id").execute()
     except Exception:
-        existing = supabase.table("user_settings").select("user_id").eq("user_id", uid).limit(1).execute()
-        if existing and existing.data:
-            supabase.table("user_settings").update(payload).eq("user_id", uid).execute()
-        else:
-            supabase.table("user_settings").insert(payload).execute()
+        try:
+            existing = supabase.table("tg_user_settings").select("user_id").eq("user_id", uid).limit(1).execute()
+            if existing and existing.data:
+                supabase.table("tg_user_settings").update(payload).eq("user_id", uid).execute()
+            else:
+                supabase.table("tg_user_settings").insert(payload).execute()
+        except Exception as ex:
+            print(f"sp_set_delay error for user {uid}: {ex}")
 
 def sp_get_delay(uid: int) -> Optional[int]:
-    res = supabase.table("user_settings").select("delay_seconds").eq("user_id", uid).limit(1).execute()
-    data = res.data or []
-    if not data: return None
-    try: return int(data[0].get("delay_seconds") or 0)
-    except Exception: return None
+    try:
+        res = supabase.table("tg_user_settings").select("delay_seconds").eq("user_id", uid).limit(1).execute()
+        data = res.data or []
+        if not data: return None
+        return int(data[0].get("delay_seconds") or 0)
+    except Exception as ex:
+        print(f"sp_get_delay error for user {uid}: {ex}")
+        return None
 
 def sp_get_forwarding_users() -> List[int]:
     """
@@ -434,7 +504,7 @@ def sp_get_forwarding_users() -> List[int]:
     Restart ke baad isi list se auto-resume karenge.
     """
     try:
-        res = supabase.table("user_settings").select("user_id", "is_forwarding")\
+        res = supabase.table("tg_user_settings").select("user_id", "is_forwarding")\
             .eq("is_forwarding", True).execute()
         rows = res.data or []
         uids: List[int] = []
@@ -734,24 +804,20 @@ def multi_kb(n: int, selected: Set[int]) -> List[List[Button]]:
 # ---------------- BOT PROFILE ----------------
 
 async def setup_bot_profile():
+    """
+    Register bot commands with Telegram.
+    Note: SetBotInfoRequest is only for bot owners (user accounts) via MTProto and errors out
+    if called by the bot itself. Bot commands are set via SetBotCommandsRequest.
+    """
     try:
-        me = await bot.get_me()
-        await bot(SetBotInfoRequest(
-            bot=me, lang_code="en",
-            name="Auto Message Forwarder Bot",
-            about="🔄 Forward messages between chats (even private).",
-            description=("What can this bot do?\n\n"
-                         "I can copy messages from any chat (public/private channel/group/bot/user) "
-                         "to any other chat as soon as they arrive. Only *new* messages.\n\n"
-                         "Send /start to begin 🚀")
-        ))
         await bot(SetBotCommandsRequest(
             scope=BotCommandScopeDefault(),
             lang_code="en",
             commands=[BotCommand(cmd, desc) for cmd, desc in COMMANDS]
         ))
+        print("✅ Telegram bot commands registered successfully.")
     except Exception as e:
-        print("Profile/commands set error:", e)
+        print("⚠️ Telegram bot commands set warning:", e)
 
 # ---------------- GUARDS ----------------
 async def guard_or_hint(e) -> bool:
@@ -793,7 +859,7 @@ PLAN_LEVEL = {
 
 # Sab free commands
 ALWAYS_ALLOWED = {
-    "start","start_demo","help","login","status","config","plans","upgrade",
+    "start","start_demo","help","login","status","config","tg_plans","upgrade",
     "upgrade_status","logout","stoplogin",
     "remove_incoming","remove_outgoing","removefilter","removedelay",
     "remove_text","remove_blacklist"
@@ -1691,9 +1757,14 @@ async def cmd_work(e):
         await _handle_forward_event(uid, evt)
 
     # Mark in DB that forwarding is active
-    supabase.table("user_settings").update({
-        "is_forwarding": True
-    }).eq("user_id", uid).execute()
+    try:
+        supabase.table("tg_user_settings").upsert({
+            "user_id": uid,
+            "is_forwarding": True,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }, on_conflict="user_id").execute()
+    except Exception as ex:
+        print(f"⚠️ Warning updating is_forwarding for user {uid}: {ex}")
 
     await e.respond(
         "▶️ **Forwarding started!**\n"
@@ -1910,10 +1981,13 @@ async def cmd_stop(e):
     USER_CLIENT_CACHE.pop(uid, None)
 
     # Mark forwarding as stopped
-    supabase.table("user_settings").update({
-        "is_forwarding": False
-    }).eq("user_id", uid).execute()
-
+    try:
+        supabase.table("tg_user_settings").update({
+            "is_forwarding": False,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }).eq("user_id", uid).execute()
+    except Exception as ex:
+        print(f"⚠️ Warning updating is_forwarding for user {uid}: {ex}")
 
     await e.respond("⏹️ **Forwarding stopped**\nYou can start again with **/work**.")
 
@@ -2167,7 +2241,7 @@ async def remove_delay_cmd(e):
             "delay_seconds": 0,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }
-        supabase.table("user_settings").upsert(payload, on_conflict="user_id").execute()
+        supabase.table("tg_user_settings").upsert(payload, on_conflict="user_id").execute()
 
         # If forwarding loop is active, update it immediately
         if uid in forward_loops:
@@ -2179,7 +2253,7 @@ async def remove_delay_cmd(e):
         await e.respond(f"❌ Failed to remove delay:\n`{ex}`", parse_mode="md")
 
 
-# --- /plans (public) — shows feature-only overview with plan buttons ---
+# --- /tg_plans(public) — shows feature-only overview with plan buttons ---
 @bot.on(events.NewMessage(pattern=r"^/plans$"))
 async def cmd_plans(e):
     uid = int(e.sender_id)
@@ -2426,7 +2500,17 @@ if __name__ == "__main__":
     print("🤖 Auto-Forward Login Bot ready!")
     try:
         asyncio.get_event_loop().run_until_complete(setup_bot_profile())
+    except Exception as ex:
+        print(f"⚠️ Non-fatal error during bot profile setup: {ex}")
+
+    try:
         asyncio.get_event_loop().run_until_complete(resume_forwarding_on_start())
-    except:
-        pass
-    bot.run_until_disconnected()
+    except Exception as ex:
+        print(f"⚠️ Non-fatal error during resume forwarding on start: {ex}")
+
+    try:
+        bot.run_until_disconnected()
+    except (KeyboardInterrupt, SystemExit):
+        print("👋 Bot stopped gracefully.")
+    except Exception as ex:
+        print(f"❌ Bot disconnected with error: {ex}")
