@@ -95,7 +95,7 @@ async def get_user_memory(bot_id: str, telegram_user_id: int) -> dict:
     if not telegram_user_id:
         return {}
     try:
-        query = supabase.table('telegram_user_memory')\
+        query = supabase.table('tg_user_memory')\
             .select('*')\
             .eq('bot_id', bot_id)\
             .eq('telegram_user_id', telegram_user_id)\
@@ -114,7 +114,7 @@ async def get_conversation_state(bot_id: str, telegram_user_id: int) -> dict:
     if not telegram_user_id:
         return {}
     try:
-        query = supabase.table('telegram_conversation_state')\
+        query = supabase.table('tg_conversation_state')\
             .select('*')\
             .eq('bot_id', bot_id)\
             .eq('telegram_user_id', telegram_user_id)\
@@ -133,7 +133,7 @@ async def is_telegram_message_processed(bot_id: str, telegram_user_id: int, tele
     if not telegram_message_id or not telegram_user_id:
         return False
     try:
-        query = supabase.table('telegram_chat_messages')\
+        query = supabase.table('tg_chat_messages')\
             .select('id')\
             .eq('bot_id', bot_id)\
             .eq('telegram_user_id', telegram_user_id)\
@@ -249,7 +249,7 @@ INSTRUCTIONS:
         }
 
         # Upsert telegram_user_memory
-        mem_upsert = supabase.table('telegram_user_memory')\
+        mem_upsert = supabase.table('tg_user_memory')\
             .upsert(updated_memory, on_conflict='bot_id,telegram_user_id')
         await run_supabase_query(mem_upsert)
         logger.info(f"[MEMORY] Updated persistent memory for user {telegram_user_id} (Name: {updated_memory.get('name')}, Stage: {updated_memory.get('lead_stage')})")
@@ -266,7 +266,7 @@ INSTRUCTIONS:
         }
 
         # Upsert telegram_conversation_state
-        state_upsert = supabase.table('telegram_conversation_state')\
+        state_upsert = supabase.table('tg_conversation_state')\
             .upsert(updated_state, on_conflict='bot_id,telegram_user_id')
         await run_supabase_query(state_upsert)
         logger.info(f"[SUMMARY] Updated conversation state for user {telegram_user_id}")
@@ -449,7 +449,7 @@ async def generate_llm_response(bot_id: str, user_message: str, telegram_user_id
     history = []
     if telegram_user_id:
         try:
-            history_query = supabase.table('telegram_chat_messages')\
+            history_query = supabase.table('tg_chat_messages')\
                 .select('role, content')\
                 .eq('bot_id', bot_id)\
                 .eq('telegram_user_id', telegram_user_id)\
@@ -551,7 +551,7 @@ async def get_or_create_telegram_session(bot_id: str, telegram_user_id: int, use
     try:
         logger.info(f"get_or_create_telegram_session called for bot_id={bot_id}, telegram_user_id={telegram_user_id}, user_name={user_name}")
         # 1. Try to find existing session mapping
-        query_select = supabase.table('telegram_bot_sessions')\
+        query_select = supabase.table('tg_bot_sessions')\
             .select('id')\
             .eq('bot_id', bot_id)\
             .eq('telegram_user_id', telegram_user_id)
@@ -564,7 +564,7 @@ async def get_or_create_telegram_session(bot_id: str, telegram_user_id: int, use
             
         # 2. If not found, create new session in chatbot_sessions
         logger.info("No existing session found. Creating a new session in chatbot_sessions...")
-        query_insert_session = supabase.table('chatbot_sessions')\
+        query_insert_session = supabase.table('tg_chatbot_sessions')\
             .insert({'status': 'active'})
             
         session_res = await run_supabase_query(query_insert_session)
@@ -576,7 +576,7 @@ async def get_or_create_telegram_session(bot_id: str, telegram_user_id: int, use
         
         # 3. Create mapping in telegram_bot_sessions
         logger.info(f"Creating session mapping in telegram_bot_sessions with id={session_id}...")
-        query_insert_mapping = supabase.table('telegram_bot_sessions')\
+        query_insert_mapping = supabase.table('tg_bot_sessions')\
             .insert({
                 'id': session_id,
                 'bot_id': bot_id,
@@ -697,7 +697,7 @@ async def start_bot(config: dict):
                     # 1. Save user message and bot response to legacy chatbot_messages
                     if session_id:
                         try:
-                            await run_supabase_query(supabase.table('chatbot_messages').insert([
+                            await run_supabase_query(supabase.table('tg_chatbot_messages').insert([
                                 {'session_id': session_id, 'role': 'user', 'content': user_message},
                                 {'session_id': session_id, 'role': 'assistant', 'content': response_text}
                             ]))
@@ -706,7 +706,7 @@ async def start_bot(config: dict):
 
                     # 2. Save user message and bot response to dedicated telegram_chat_messages with telegram_message_id
                     try:
-                        await run_supabase_query(supabase.table('telegram_chat_messages').insert([
+                        await run_supabase_query(supabase.table('tg_chat_messages').insert([
                             {'bot_id': bot_id, 'telegram_user_id': user_id, 'user_name': user_name, 'role': 'user', 'content': user_message, 'telegram_message_id': msg_id},
                             {'bot_id': bot_id, 'telegram_user_id': user_id, 'user_name': user_name, 'role': 'assistant', 'content': response_text}
                         ]))
@@ -862,7 +862,7 @@ async def start_bot(config: dict):
                             # 1. Save user message and bot response to legacy chatbot_messages
                             if session_id:
                                 try:
-                                    await run_supabase_query(supabase.table('chatbot_messages').insert([
+                                    await run_supabase_query(supabase.table('tg_chatbot_messages').insert([
                                         {'session_id': session_id, 'role': 'user', 'content': user_message},
                                         {'session_id': session_id, 'role': 'assistant', 'content': response_text}
                                     ]))
@@ -871,7 +871,7 @@ async def start_bot(config: dict):
 
                             # 2. Save user message and bot response to dedicated telegram_chat_messages
                             try:
-                                await run_supabase_query(supabase.table('telegram_chat_messages').insert([
+                                await run_supabase_query(supabase.table('tg_chat_messages').insert([
                                     {'bot_id': bot_id, 'telegram_user_id': user_id, 'user_name': user_name, 'role': 'user', 'content': user_message, 'telegram_message_id': msg_id},
                                     {'bot_id': bot_id, 'telegram_user_id': user_id, 'user_name': user_name, 'role': 'assistant', 'content': response_text}
                                 ]))
@@ -924,7 +924,7 @@ async def bot_runner():
         try:
             # 1. Fetch active channel mappings to identify join bots
             try:
-                mappings_query = supabase.table('bot_channel_mappings').select('bot_id').eq('status', 'Active')
+                mappings_query = supabase.table('tg_bot_channel_mappings').select('bot_id').eq('status', 'Active')
                 mappings_res = await run_supabase_query(mappings_query)
                 GLOBAL_JOIN_BOT_IDS.clear()
                 if mappings_res.data:
@@ -937,8 +937,8 @@ async def bot_runner():
 
             # 2. Join chatbot_configs with telegram_tracker to get the bot_token
             # Also fetch knowledge_base_text (n8n-generated full system prompt)
-            query = supabase.table('chatbot_configs')\
-                .select('*, telegram_tracker(bot_token)')\
+            query = supabase.table('tg_chatbot_configs')\
+                .select('*, tg_tracker(bot_token)')\
                 .eq('status', 'active')
             
             response = await run_supabase_query(query)
@@ -953,7 +953,7 @@ async def bot_runner():
             current_bot_ids = set()
             for config in configs:
                 bot_id = config['bot_id']
-                tracker_data = config.get('telegram_tracker')
+                tracker_data = config.get('tg_tracker')
                 
                 # Skip if we couldn't fetch the token
                 if not tracker_data or not tracker_data.get('bot_token'):

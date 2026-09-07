@@ -231,7 +231,7 @@ async def login_otp(request: OtpRequest, ctx: dict = Depends(get_auth_context)):
             "is_active": True,
             "updated_at": datetime.utcnow().isoformat(),
         }
-        sb.table("telegram_accounts").upsert(
+        sb.table("tg_accounts").upsert(
             account_data, on_conflict="user_id"
         ).execute()
 
@@ -283,7 +283,7 @@ async def login_password(
             "is_active": True,
             "updated_at": datetime.utcnow().isoformat(),
         }
-        sb.table("telegram_accounts").upsert(
+        sb.table("tg_accounts").upsert(
             account_data, on_conflict="user_id"
         ).execute()
 
@@ -363,7 +363,7 @@ async def sync_chats(ctx: dict = Depends(get_auth_context)):
         raise HTTPException(status_code=401, detail="Telegram not connected")
 
     # Clear existing chats for this user to ensure old non-admin chats are removed
-    sb.table("telegram_chats").delete().eq("user_id", user_id).execute()
+    sb.table("tg_chats").delete().eq("user_id", user_id).execute()
 
     # Fetch and save chats to telegram_chats table
     chats = []
@@ -413,7 +413,7 @@ async def sync_chats(ctx: dict = Depends(get_auth_context)):
             # We use a combined search or just upsert if we had a constraint,
             # but since 'id' is pk, we can use user_id + chat_id or just insert
             # Assuming schema has some way to avoid duplicates or we just update
-            sb.table("telegram_chats").upsert(
+            sb.table("tg_chats").upsert(
                 chat_data, on_conflict="user_id,chat_id"
             ).execute()
 
@@ -456,7 +456,7 @@ async def generate_invite_link(
 
         # Update the communities table with the invite link
         try:
-            sb.table("communities").update({"invite_link": invite_link}).eq(
+            sb.table("tg_communities").update({"invite_link": invite_link}).eq(
                 "telegram_chat_id", request.chat_id
             ).eq("user_id", user_id).execute()
         except Exception as db_error:
@@ -483,7 +483,7 @@ async def get_invite_link(chat_id: int, ctx: dict = Depends(get_auth_context)):
     try:
         # First check if we have it in the database
         result = (
-            sb.table("communities")
+            sb.table("tg_communities")
             .select("invite_link")
             .eq("telegram_chat_id", chat_id)
             .eq("user_id", user_id)
@@ -536,7 +536,7 @@ async def get_invite_link(chat_id: int, ctx: dict = Depends(get_auth_context)):
 
         # Update database
         try:
-            sb.table("communities").update({"invite_link": invite_link}).eq(
+            sb.table("tg_communities").update({"invite_link": invite_link}).eq(
                 "telegram_chat_id", chat_id
             ).eq("user_id", user_id).execute()
         except Exception as db_error:
@@ -585,7 +585,7 @@ async def tg_logout(ctx: dict = Depends(get_auth_context)):
 
         # Update database status
         try:
-            sb.table("telegram_accounts").update({"is_active": False}).eq(
+            sb.table("tg_accounts").update({"is_active": False}).eq(
                 "user_id", user_id
             ).execute()
         except Exception as e:
@@ -603,5 +603,5 @@ if __name__ == "__main__":
     import uvicorn
 
     host = os.getenv("HOST", "0.0.0.0")
-    port = int(os.getenv("PORT", "8000"))
+    port = int(os.getenv("PORT", "8002"))
     uvicorn.run(app, host=host, port=port)

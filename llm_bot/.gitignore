@@ -1,0 +1,19 @@
+# Environments
+.env
+.env.*
+.env.local
+*.env
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Telegram Sessions
+*.session
+*.session-journal
+sessions/

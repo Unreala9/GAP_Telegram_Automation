@@ -58,7 +58,7 @@ A FastAPI server acting as a bridge between the front-end web dashboard and the 
 ### 4. Subscription Bot (`SubscriptionBOT2.0`)
 A python-telegram-bot service that controls access to premium paid channels or groups based on payments registered in the web dashboard.
 
-*   **Deep Link Verification:** Processes `/start <token>` URLs generated upon successful dashboard payments. Handles base64-encoded or raw UUID tokens, checking their validity against `telegram_deeplinks`.
+*   **Deep Link Verification:** Processes `/start <token>` URLs generated upon successful dashboard payments. Handles base64-encoded or raw UUID tokens, checking their validity against `tg_deeplinks`.
 *   **Account-to-Payment Mapping:** Automatically associates the verified user's `telegram_user_id` with their active record in the database.
 *   **Single-Use Tokens:** Enforces strictly one-time usage on validation tokens to prevent link sharing.
 *   **Auto-Approve for Subscribers:** Listens to channel/group join requests and immediately approves them if the user has an active subscription, otherwise automatically declines the request.
@@ -72,7 +72,7 @@ A marketing automation bot that enables administrators and creators to send form
 *   **Interactive Audience Selection:** Uses Telegram inline button menus to display a list of active channels owned by the user.
 *   **Dynamic Media Downloader:** Downloads and stores files (images, videos, documents) sent by administrators, caching them locally in a `broadcast_media` directory.
 *   **Interactive Broadcast Preview:** Displays a full layout preview of the media and formatted text to the creator with confirm/cancel buttons.
-*   **Queue-Based Processing:** Inserts approved messages into a database table (`broadcast_tasks`) to be asynchronously sent to target users, mitigating network drops and preventing Telegram flood errors.
+*   **Queue-Based Processing:** Inserts approved messages into a database table (`tg_broadcast_tasks`) to be asynchronously sent to target users, mitigating network drops and preventing Telegram flood errors.
 *   **Dashboard-Linked Account Binding:** Allows users to link their dashboard profiles to the Telegram bot via one-click deep links (`/start <uuid>`).
 
 ---
@@ -80,7 +80,7 @@ A marketing automation bot that enables administrators and creators to send form
 ### 6. Lead Tracker & Drip Campaign Bot (`join_bot`)
 A daemon system (`gap_join_bot.py` / `gapjointarcker.py`) that manages multiple client greeting bots dynamically and processes marketing campaigns.
 
-*   **Dynamic Multi-Bot Synchronization:** Continuously monitors the Supabase `telegram_tracker` database and dynamically launches or stops individual bot client instances on the fly using real-time database listener events.
+*   **Dynamic Multi-Bot Synchronization:** Continuously monitors the Supabase `tg_tracker` database and dynamically launches or stops individual bot client instances on the fly using real-time database listener events.
 *   **Welcome Greetings & Lead Capturing:** Greets new users joining groups/channels, logging their Telegram credentials (names, usernames, and user IDs) as potential leads in the database.
 *   **Automated Drip Follow-ups:** Automatically schedules and sends sequential drip messages (e.g. follow-up offers, helpful tips) to newly joined users based on their join-time.
 *   **Task & Broadcast Workers:** Asynchronously picks up broadcast tasks and sends out mass messages to all users who have interacted with the bot.

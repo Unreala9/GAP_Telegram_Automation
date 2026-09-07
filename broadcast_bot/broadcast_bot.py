@@ -67,12 +67,12 @@ async def get_owner_data(tg_user_id):
 
 async def get_owner_channels(user_id):
     if not supabase: return []
-    bots_res = await supabase.table('telegram_tracker').select('id').eq('user_id', user_id).execute()
+    bots_res = await supabase.table('tg_tracker').select('id').eq('user_id', user_id).execute()
     bots_data = getattr(bots_res, 'data', [])
     if not bots_data:
         return []
     bot_ids = [b['id'] for b in bots_data]
-    mappings_res = await supabase.table('bot_channel_mappings').select('channel_id, channel_name').in_('bot_id', bot_ids).eq('status', 'Active').execute()
+    mappings_res = await supabase.table('tg_bot_channel_mappings').select('channel_id, channel_name').in_('bot_id', bot_ids).eq('status', 'Active').execute()
     mappings_data = getattr(mappings_res, 'data', [])
     return mappings_data
 
@@ -201,7 +201,7 @@ async def main():
         sender_id = event.sender_id
         
         try:
-            res = await supabase.table('bot_channel_mappings').select('channel_name').eq('channel_id', channel_id).limit(1).execute()
+            res = await supabase.table('tg_bot_channel_mappings').select('channel_name').eq('channel_id', channel_id).limit(1).execute()
             channel_name = res.data[0]['channel_name'] if res.data else "Unknown"
             user_states[sender_id] = {'step': 'awaiting_message', 'channel_id': channel_id, 'channel_name': channel_name}
             await event.edit(f"✅ **{channel_name}** selected. Send your message now.")
@@ -231,7 +231,7 @@ async def main():
                 },
                 'status': 'pending'
             }
-            await supabase.table('broadcast_tasks').insert(task_data).execute()
+            await supabase.table('tg_broadcast_tasks').insert(task_data).execute()
             await event.edit("✅ **Broadcast task created!**")
             user_states.pop(sender_id, None)
         except Exception as e:
