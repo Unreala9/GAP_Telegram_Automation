@@ -7454,3 +7454,131 @@ ConnectionError: Connection to Telegram failed 5 time(s)
 2026-09-05 16:43:01,510 - BotManager - INFO - Synchronizing bots with database...
 2026-09-05 16:43:33,708 - BotManager - INFO - Synchronizing bots with database...
 2026-09-05 16:44:06,438 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:22:40,293 - BotManager - INFO - Bot Manager Started (Async Realtime Mode). Setting up listeners...
+2026-09-08 16:22:40,543 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:22:42,691 - BotManager - INFO - Starting bot: 5542fc01-651b-4db9-ac26-0f56ac329ef9
+2026-09-08 16:22:42,734 - BotManager - INFO - Starting bot: 2d250812-83d4-4101-9a49-68ccd475b78c
+2026-09-08 16:22:42,761 - BotManager - INFO - Starting bot: 292a9341-f6f7-4719-acac-a04e63c4bc40
+2026-09-08 16:22:42,791 - BotManager - INFO - Starting bot: 5ec80d9e-a89e-4bf7-93ec-1fc356e6226f
+2026-09-08 16:22:42,822 - BotManager - INFO - Starting bot: 4f4b03bb-3db4-4e4d-9f41-89ea8b36d04f
+2026-09-08 16:22:42,855 - BotManager - INFO - Starting bot: 63a8fb0f-0b30-40e1-b1c0-9e85f93c7bc0
+2026-09-08 16:22:42,888 - BotManager - INFO - Starting bot: 6dc0ad74-df4f-4494-bafa-814999a65ca8
+2026-09-08 16:22:42,923 - BotManager - INFO - Starting bot: aeb96905-2373-4c6e-8d9e-878a0ae4e221
+2026-09-08 16:22:42,955 - BotManager - INFO - Starting bot: c1a4d5ee-69f0-4025-aa26-a783e443589f
+2026-09-08 16:22:42,983 - BotManager - INFO - Starting bot: b424e21b-044f-426e-90d9-1f6fbb84bf1e
+2026-09-08 16:22:43,020 - BotManager - INFO - Starting bot: 80b3cc75-40e6-469f-85b0-dcf2f00b3565
+2026-09-08 16:22:43,062 - BotManager - INFO - Starting bot: 81b05478-392f-4c74-ab2d-f50c0d9626d7
+2026-09-08 16:22:43,103 - BotManager - INFO - Starting bot: 098d835d-dae9-4eec-932b-cad93336f7ff
+2026-09-08 16:22:43,145 - BotManager - INFO - Starting bot: 5e27ec16-8975-47e9-aff4-9012a6679125
+2026-09-08 16:22:43,179 - BotManager - INFO - Starting bot: 784e2269-9257-4a14-a229-a62682a4484e
+2026-09-08 16:22:43,210 - BotManager - INFO - Starting bot: 86e82f6c-e66f-4b93-bd48-470de6bee501
+2026-09-08 16:22:43,239 - BotManager - INFO - Starting bot: d1d905aa-c338-40d6-9cc2-e4b452f374b9
+2026-09-08 16:22:43,274 - BotManager - INFO - Starting bot: 8aa85dfe-46fa-4217-b6f0-58c2d3c613e4
+2026-09-08 16:22:43,307 - BotManager - INFO - Starting bot: beb7f1df-76be-475e-8310-243a2efc3f85
+2026-09-08 16:22:43,339 - BotManager - INFO - Starting bot: 115dd97e-20f6-4c20-8978-7e47933d2ed0
+2026-09-08 16:22:43,375 - BotManager - INFO - Starting bot: 84c3f0c6-b0e9-428a-9049-a3068aae0d52
+2026-09-08 16:22:43,415 - BotManager - INFO - Starting bot: dd6bb724-8b73-4617-8116-18c14524ab87
+2026-09-08 16:22:43,451 - BotManager - INFO - Starting bot: d0ed5c02-5d1b-4616-b8c4-1efa27f5c2d7
+2026-09-08 16:22:43,491 - BotManager - INFO - Starting bot: 7f4ab634-55a2-4ad4-9317-23704deb00a8
+2026-09-08 16:22:43,534 - BotManager - INFO - Starting bot: d0e30c83-890a-4bac-9895-0aed561e65d9
+2026-09-08 16:22:43,574 - BotManager - INFO - Starting bot: e5876354-8701-4744-b404-0726a699c2f5
+2026-09-08 16:22:43,614 - BotManager - INFO - Starting bot: f3144f75-e985-47aa-96bc-b69915bc3e6f
+2026-09-08 16:22:43,653 - BotManager - INFO - Starting bot: 9a77230b-bb7d-41e4-bc54-1f6a6d65a814
+2026-09-08 16:22:43,692 - BotManager - INFO - Starting bot: d270361f-0e21-4364-8af3-b5370171fe19
+2026-09-08 16:22:45,233 - BotManager - INFO - Realtime subscriptions active. Monitoring for database changes...
+2026-09-08 16:22:47,685 - BotManager - ERROR - Failed to start bot 7f4ab634-55a2-4ad4-9317-23704deb00a8: The provided token is not valid (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:47,940 - BotManager - ERROR - Failed to start bot 6dc0ad74-df4f-4494-bafa-814999a65ca8: Bot token expired (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:48,322 - BotManager - ERROR - Failed to start bot 5e27ec16-8975-47e9-aff4-9012a6679125: Bot token expired (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:48,327 - BotManager - ERROR - Failed to start bot b424e21b-044f-426e-90d9-1f6fbb84bf1e: Bot token expired (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:48,469 - BotManager - ERROR - Failed to start bot 4f4b03bb-3db4-4e4d-9f41-89ea8b36d04f: Bot token expired (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:48,498 - BotManager - ERROR - Failed to start bot dd6bb724-8b73-4617-8116-18c14524ab87: The provided token is not valid (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:48,536 - BotManager - ERROR - Failed to start bot 86e82f6c-e66f-4b93-bd48-470de6bee501: Bot token expired (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:48,536 - BotManager - ERROR - Failed to start bot 784e2269-9257-4a14-a229-a62682a4484e: Bot token expired (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:50,217 - BotManager - INFO - Bot 63a8fb0f-0b30-40e1-b1c0-9e85f93c7bc0 started successfully!
+2026-09-08 16:22:50,218 - BotManager - INFO - Bot 63a8fb0f-0b30-40e1-b1c0-9e85f93c7bc0: 12h reminder task started.
+2026-09-08 16:22:50,284 - BotManager - INFO - Bot d1d905aa-c338-40d6-9cc2-e4b452f374b9 started successfully!
+2026-09-08 16:22:50,284 - BotManager - INFO - Bot d1d905aa-c338-40d6-9cc2-e4b452f374b9: 12h reminder task started.
+2026-09-08 16:22:50,352 - BotManager - INFO - Bot f3144f75-e985-47aa-96bc-b69915bc3e6f started successfully!
+2026-09-08 16:22:50,352 - BotManager - INFO - Bot f3144f75-e985-47aa-96bc-b69915bc3e6f: 12h reminder task started.
+2026-09-08 16:22:50,354 - BotManager - ERROR - Failed to start bot aeb96905-2373-4c6e-8d9e-878a0ae4e221: The provided token is not valid (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:50,381 - BotManager - INFO - Bot 098d835d-dae9-4eec-932b-cad93336f7ff started successfully!
+2026-09-08 16:22:50,382 - BotManager - INFO - Bot 098d835d-dae9-4eec-932b-cad93336f7ff: 12h reminder task started.
+2026-09-08 16:22:50,584 - BotManager - INFO - Bot e5876354-8701-4744-b404-0726a699c2f5 started successfully!
+2026-09-08 16:22:50,584 - BotManager - INFO - Bot e5876354-8701-4744-b404-0726a699c2f5: 12h reminder task started.
+2026-09-08 16:22:50,720 - BotManager - INFO - Bot 5542fc01-651b-4db9-ac26-0f56ac329ef9 started successfully!
+2026-09-08 16:22:50,721 - BotManager - INFO - Bot 5542fc01-651b-4db9-ac26-0f56ac329ef9: 12h reminder task started.
+2026-09-08 16:22:50,818 - BotManager - INFO - Bot 8aa85dfe-46fa-4217-b6f0-58c2d3c613e4 started successfully!
+2026-09-08 16:22:50,819 - BotManager - INFO - Bot 8aa85dfe-46fa-4217-b6f0-58c2d3c613e4: 12h reminder task started.
+2026-09-08 16:22:50,823 - BotManager - ERROR - Failed to start bot d0e30c83-890a-4bac-9895-0aed561e65d9: Bot token expired (caused by ImportBotAuthorizationRequest)
+2026-09-08 16:22:50,909 - BotManager - INFO - Bot 5ec80d9e-a89e-4bf7-93ec-1fc356e6226f started successfully!
+2026-09-08 16:22:50,910 - BotManager - INFO - Bot 5ec80d9e-a89e-4bf7-93ec-1fc356e6226f: 12h reminder task started.
+2026-09-08 16:22:50,911 - BotManager - INFO - Bot d0ed5c02-5d1b-4616-b8c4-1efa27f5c2d7 started successfully!
+2026-09-08 16:22:50,912 - BotManager - INFO - Bot d0ed5c02-5d1b-4616-b8c4-1efa27f5c2d7: 12h reminder task started.
+2026-09-08 16:22:50,923 - BotManager - INFO - Bot c1a4d5ee-69f0-4025-aa26-a783e443589f started successfully!
+2026-09-08 16:22:50,923 - BotManager - INFO - Bot c1a4d5ee-69f0-4025-aa26-a783e443589f: 12h reminder task started.
+2026-09-08 16:22:51,025 - BotManager - INFO - Bot 2d250812-83d4-4101-9a49-68ccd475b78c started successfully!
+2026-09-08 16:22:51,025 - BotManager - INFO - Bot 2d250812-83d4-4101-9a49-68ccd475b78c: 12h reminder task started.
+2026-09-08 16:22:51,028 - BotManager - INFO - Bot 292a9341-f6f7-4719-acac-a04e63c4bc40 started successfully!
+2026-09-08 16:22:51,029 - BotManager - INFO - Bot 292a9341-f6f7-4719-acac-a04e63c4bc40: 12h reminder task started.
+2026-09-08 16:22:51,056 - BotManager - INFO - Bot 80b3cc75-40e6-469f-85b0-dcf2f00b3565 started successfully!
+2026-09-08 16:22:51,057 - BotManager - INFO - Bot 80b3cc75-40e6-469f-85b0-dcf2f00b3565: 12h reminder task started.
+2026-09-08 16:22:51,132 - BotManager - INFO - Bot 115dd97e-20f6-4c20-8978-7e47933d2ed0 started successfully!
+2026-09-08 16:22:51,132 - BotManager - INFO - Bot 115dd97e-20f6-4c20-8978-7e47933d2ed0: 12h reminder task started.
+2026-09-08 16:22:51,367 - BotManager - INFO - Bot 81b05478-392f-4c74-ab2d-f50c0d9626d7 started successfully!
+2026-09-08 16:22:51,368 - BotManager - INFO - Bot 81b05478-392f-4c74-ab2d-f50c0d9626d7: 12h reminder task started.
+2026-09-08 16:22:51,665 - BotManager - INFO - Bot beb7f1df-76be-475e-8310-243a2efc3f85 started successfully!
+2026-09-08 16:22:51,665 - BotManager - INFO - Bot beb7f1df-76be-475e-8310-243a2efc3f85: 12h reminder task started.
+2026-09-08 16:22:51,750 - BotManager - INFO - Bot 9a77230b-bb7d-41e4-bc54-1f6a6d65a814 started successfully!
+2026-09-08 16:22:51,751 - BotManager - INFO - Bot 9a77230b-bb7d-41e4-bc54-1f6a6d65a814: 12h reminder task started.
+2026-09-08 16:22:51,783 - BotManager - INFO - Bot 84c3f0c6-b0e9-428a-9049-a3068aae0d52 started successfully!
+2026-09-08 16:22:51,784 - BotManager - INFO - Bot 84c3f0c6-b0e9-428a-9049-a3068aae0d52: 12h reminder task started.
+2026-09-08 16:22:52,080 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19 started successfully!
+2026-09-08 16:22:52,081 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: 12h reminder task started.
+2026-09-08 16:22:52,769 - BotManager - INFO - Bot e5876354-8701-4744-b404-0726a699c2f5: Starting invite links sync for channel -1004318725539...
+2026-09-08 16:22:53,156 - BotManager - INFO - Bot f3144f75-e985-47aa-96bc-b69915bc3e6f: Starting invite links sync for channel -1001969813867...
+2026-09-08 16:22:53,161 - BotManager - INFO - Bot 5ec80d9e-a89e-4bf7-93ec-1fc356e6226f: Starting invite links sync for channel -1003708880140...
+2026-09-08 16:22:53,163 - BotManager - INFO - Bot c1a4d5ee-69f0-4025-aa26-a783e443589f: Starting invite links sync for channel -1003859281246...
+2026-09-08 16:22:53,938 - BotManager - INFO - Bot 9a77230b-bb7d-41e4-bc54-1f6a6d65a814: Starting invite links sync for channel -1003923823436...
+2026-09-08 16:22:54,276 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Starting invite links sync for channel -1001416711084...
+2026-09-08 16:22:54,421 - BotManager - INFO - Bot 5ec80d9e-a89e-4bf7-93ec-1fc356e6226f: Found 2 invite link(s) to sync for channel -1003708880140.
+2026-09-08 16:22:54,423 - BotManager - INFO - Bot e5876354-8701-4744-b404-0726a699c2f5: Found 0 invite link(s) to sync for channel -1004318725539.
+2026-09-08 16:22:54,906 - BotManager - INFO - Bot f3144f75-e985-47aa-96bc-b69915bc3e6f: Found 2 invite link(s) to sync for channel -1001969813867.
+2026-09-08 16:22:54,913 - BotManager - INFO - Bot c1a4d5ee-69f0-4025-aa26-a783e443589f: Found 2 invite link(s) to sync for channel -1003859281246.
+2026-09-08 16:22:54,927 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:22:54,928 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:22:55,017 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:22:55,018 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:22:55,573 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Found 2 invite link(s) to sync for channel -1001416711084.
+2026-09-08 16:22:55,902 - BotManager - INFO - Bot 9a77230b-bb7d-41e4-bc54-1f6a6d65a814: Found 2 invite link(s) to sync for channel -1003923823436.
+2026-09-08 16:22:56,897 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:22:56,898 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:22:56,899 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:22:56,901 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:22:57,148 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:22:57,149 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:22:57,150 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:22:57,151 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:23:15,238 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:23:47,289 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:24:19,368 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:24:51,449 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:25:23,483 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:25:41,363 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: JOIN REQUEST received from user 8062797190
+2026-09-08 16:25:42,378 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: JOIN REQUEST received from user 8062797190
+2026-09-08 16:25:44,070 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Auto-detected channel via ChatAction: 'META TRADER' (1416711084)
+2026-09-08 16:25:44,070 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: DETECTED JOIN - User 8062797190 in Chat 1416711084
+2026-09-08 16:25:44,071 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Starting invite links sync for channel -1001416711084...
+2026-09-08 16:25:44,442 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Discovered admin invite link from Admin ID 6344884187: https://t.me/+S3MBA438... ('ace 2  6-aug')
+2026-09-08 16:25:45,033 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Successfully tracked direct join for user 8062797190 on invite link (link_id: a4245e4b-6ebd-4fbe-a1f1-2205f45be32f)
+2026-09-08 16:25:45,034 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Admin update detected on channel 1416711084. Running auto-detection & link sync...
+2026-09-08 16:25:45,348 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Found 2 invite link(s) to sync for channel -1001416711084.
+2026-09-08 16:25:46,299 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:25:46,300 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:25:46,704 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Starting invite links sync for channel -1001416711084...
+2026-09-08 16:25:48,140 - BotManager - INFO - Bot d270361f-0e21-4364-8af3-b5370171fe19: Found 2 invite link(s) to sync for channel -1001416711084.
+2026-09-08 16:25:49,222 - BotManager - INFO - Realtime Event: RealtimePostgresChangesListenEvent.Update on tg_bot_channel_mappings
+2026-09-08 16:25:49,223 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:25:55,494 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:26:27,344 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:26:59,326 - BotManager - INFO - Synchronizing bots with database...
+2026-09-08 16:27:01,473 - BotManager - INFO - Bot Manager manually stopped.

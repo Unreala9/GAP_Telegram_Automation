@@ -79,6 +79,25 @@ if not os.path.exists("sessions"):
     os.makedirs("sessions")
 
 
+def render_template(template_str: str, user_name: str = None, username: str = None, channel_name: str = None) -> str:
+    """
+    Safely replaces {first_name}, {name}, {username}, and {channel_name} in templates.
+    Never throws exceptions even if values are None.
+    """
+    if not template_str:
+        return ""
+    
+    name = (user_name or "there").strip()
+    u_name = f"@{username.lstrip('@')}" if username else name
+    ch_name = (channel_name or "our channel").strip()
+    
+    return str(template_str)\
+        .replace("{first_name}", name)\
+        .replace("{name}", name)\
+        .replace("{username}", u_name)\
+        .replace("{channel_name}", ch_name)
+
+
 async def fetch_channel_photo_b64(token: str, channel_id: int or str) -> str or None:
     """Fetches the channel profile photo via Telegram Bot API and returns it as a Base64 data URL."""
     try:
@@ -411,24 +430,64 @@ async def start_bot(token: str, bot_id: str):
                     except Exception as log_err:
                         logger.error(f"Failed to log bot start: {log_err}")
 
-                    # Respond with customized message and button
-                    keyboard = [[Button.url(link_config.get('button_text') or "Join Channel", channel_link_str)]]
-                    has_extra = bool(link_config.get('telegram_extra_message'))
+                    # Dynamic user & channel details
+                    user_first_name = getattr(sender, 'first_name', None) or "there"
+                    user_tg_username = getattr(sender, 'username', None)
+                    resolved_ch_name = (mapping.get('channel_name') if mapping else None) or "the channel"
 
-                    if link_config.get('telegram_image_url'):
-                        await event.respond(
-                            link_config.get('telegram_message') or "Click the button below to join the private channel.",
-                            file=link_config.get('telegram_image_url'),
-                            buttons=None if has_extra else keyboard
-                        )
+                    # Dynamic default message if none set in DB
+                    raw_welcome_msg = link_config.get('telegram_message') or (
+                        "👋 **Hello {first_name}!**\n\n"
+                        "Click the button below to join **{channel_name}**."
+                    )
+                    rendered_welcome_msg = render_template(
+                        raw_welcome_msg,
+                        user_name=user_first_name,
+                        username=user_tg_username,
+                        channel_name=resolved_ch_name
+                    )
+
+                    # Dynamic button label
+                    raw_btn_text = link_config.get('button_text') or f"👉 Join {resolved_ch_name}"
+                    rendered_btn_text = render_template(
+                        raw_btn_text,
+                        user_name=user_first_name,
+                        username=user_tg_username,
+                        channel_name=resolved_ch_name
+                    )
+                    keyboard = [[Button.url(rendered_btn_text, channel_link_str)]]
+
+                    has_extra = bool(link_config.get('telegram_extra_message'))
+                    rendered_extra_msg = render_template(
+                        link_config.get('telegram_extra_message'),
+                        user_name=user_first_name,
+                        username=user_tg_username,
+                        channel_name=resolved_ch_name
+                    ) if has_extra else None
+
+                    # Safe media send with text fallback
+                    img_url = link_config.get('telegram_image_url')
+                    if img_url:
+                        try:
+                            await event.respond(
+                                rendered_welcome_msg,
+                                file=img_url,
+                                buttons=None if has_extra else keyboard
+                            )
+                        except Exception as img_err:
+                            logger.warning(f"Bot {bot_id}: Image send note ({img_err}), falling back to text")
+                            await event.respond(
+                                rendered_welcome_msg,
+                                buttons=None if has_extra else keyboard
+                            )
                     else:
                         await event.respond(
-                            link_config.get('telegram_message') or "Click the button below to join the private channel.",
+                            rendered_welcome_msg,
                             buttons=None if has_extra else keyboard
                         )
                         
-                    if has_extra:
-                        await event.respond(link_config.get('telegram_extra_message'), buttons=keyboard)
+                    if has_extra and rendered_extra_msg:
+                        await event.respond(rendered_extra_msg, buttons=keyboard)
                 else:
                     await event.respond("Invalid or expired join link.")
             else:
@@ -781,46 +840,84 @@ async def start_bot(token: str, bot_id: str):
                                 continue
 
                             invite_link_str = link_config.get('invite_link') or "https://t.me/"
-                            if (not invite_link_str or invite_link_str == "https://t.me/") and link_config.get('channel_mapping_id'):
-                                m_res = await supabase.table('tg_bot_channel_mappings')\
-                                    .select('invite_link')\
-                                    .eq('id', link_config['channel_mapping_id'])\
-                                    .execute()
-                                if m_res.data and m_res.data[0].get('invite_link'):
-                                    invite_link_str = m_res.data[0]['invite_link']
+                            target_channel_name = "our private channel"
 
-                            keyboard = [[Button.url(
-                                link_config.get('button_text') or "Join Channel",
-                                invite_link_str
-                            )]]
+                            if link_config.get('channel_mapping_id'):
+                                try:
+                                    m_res = await supabase.table('tg_bot_channel_mappings')\
+                                        .select('invite_link, channel_name')\
+                                        .eq('id', link_config['channel_mapping_id'])\
+                                        .execute()
+                                    if m_res.data:
+                                        if m_res.data[0].get('invite_link'):
+                                            invite_link_str = m_res.data[0]['invite_link']
+                                        if m_res.data[0].get('channel_name'):
+                                            target_channel_name = m_res.data[0]['channel_name']
+                                except Exception as m_err:
+                                    logger.warning(f"Bot {bot_id}: Channel mapping lookup note: {m_err}")
+
+                            # Dynamic user info
+                            user_first_name = user_record.get('telegram_first_name') or "there"
+                            user_tg_username = user_record.get('telegram_username')
+
+                            # Dynamic Button Text
+                            raw_btn_text = link_config.get('button_text') or f"👉 Join {target_channel_name}"
+                            rendered_btn_text = render_template(
+                                raw_btn_text,
+                                user_name=user_first_name,
+                                username=user_tg_username,
+                                channel_name=target_channel_name
+                            )
+                            keyboard = [[Button.url(rendered_btn_text, invite_link_str)]]
 
                             if user_status == 'leaved':
-                                reminder_text = (
-                                    "👋 *We miss you!*\n\n"
-                                    "It looks like you left the channel. "
+                                reminder_template = (
+                                    "👋 **Hey {first_name}, we miss you!**\n\n"
+                                    "It looks like you left **{channel_name}**.\n"
                                     "Come back and rejoin anytime using the link below!"
                                 )
                             else:
-                                reminder_text = (
-                                    "🔔 *Reminder!*\n\n"
-                                    "You haven't joined the channel yet. "
-                                    "Click the button below to join now!"
+                                reminder_template = (
+                                    "🔔 **Hey {first_name}!**\n\n"
+                                    "You haven't joined **{channel_name}** yet.\n"
+                                    "Click the button below to get instant access!"
                                 )
+
+                            rendered_reminder = render_template(
+                                reminder_template,
+                                user_name=user_first_name,
+                                username=user_tg_username,
+                                channel_name=target_channel_name
+                            )
 
                             custom_msg = link_config.get('telegram_message') or ""
                             if custom_msg:
-                                reminder_text = f"{reminder_text}\n\n{custom_msg}"
+                                rendered_custom = render_template(
+                                    custom_msg,
+                                    user_name=user_first_name,
+                                    username=user_tg_username,
+                                    channel_name=target_channel_name
+                                )
+                                rendered_reminder = f"{rendered_reminder}\n\n{rendered_custom}"
 
                             try:
-                                if link_config.get('telegram_image_url'):
-                                    await client.send_message(
-                                        user_tg_id, reminder_text,
-                                        file=link_config.get('telegram_image_url'),
-                                        buttons=keyboard
-                                    )
+                                # Safe Media Delivery with Failsafe
+                                img_url = link_config.get('telegram_image_url')
+                                if img_url:
+                                    try:
+                                        await client.send_message(
+                                            user_tg_id, rendered_reminder,
+                                            file=img_url,
+                                            buttons=keyboard
+                                        )
+                                    except Exception as img_send_err:
+                                        logger.warning(f"Bot {bot_id}: Reminder image failed ({img_send_err}), sending text-only fallback")
+                                        await client.send_message(
+                                            user_tg_id, rendered_reminder, buttons=keyboard
+                                        )
                                 else:
                                     await client.send_message(
-                                        user_tg_id, reminder_text, buttons=keyboard
+                                        user_tg_id, rendered_reminder, buttons=keyboard
                                     )
 
                                 await supabase.table('tg_bot_join_users')\

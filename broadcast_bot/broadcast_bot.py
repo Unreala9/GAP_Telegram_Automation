@@ -29,6 +29,7 @@ logger.setLevel(logging.INFO)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("telethon").setLevel(logging.WARNING)
 
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 load_dotenv()
 
 SUPABASE_URL = os.environ.get("VITE_SUPABASE_URL") or os.environ.get("SUPABASE_URL")
